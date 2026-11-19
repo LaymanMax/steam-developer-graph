@@ -1,46 +1,105 @@
-## Contributing
+# Contributing to Steam Developer Network Graph
 
-We welcome contributions of all kinds to improve this project! Here's how you can get involved:
+Thank you for your interest in contributing to **Steam Developer Network Graph**! We welcome contributions of all kinds, including feature implementations, graph algorithm improvements, bug fixes, documentation enhancements, and data quality refinements.
 
-1. **Fork the Repository**: Start by forking the repository to your GitHub account.
+---
 
-2. **Clone Your Fork**: Clone the forked repository to your local machine:
+## Code of Conduct
 
-   ```bash
-   git clone <repo_url>
-   cd repo_dir
-   ```
+All contributors and participants are expected to adhere to our [Code of Conduct](./CODE_OF_CONDUCT.md). Please read it to understand our community standards.
 
-3. **Create a Branch**: Create a new branch for your feature or bug fix:
+---
 
-   ```bash
-   git checkout -b feature-name
-   ```
+## Development Setup
 
-4. **Make Changes**: Make your changes to the codebase. Be sure to follow existing code style and conventions.
+### Prerequisites
 
-5. **Commit Changes**: Commit your changes with a clear and descriptive message:
+- **Rust**: 1.75+ with Cargo (`rustup update`)
+- **Node.js**: 18+ and `pnpm` (or `npm`)
 
-   ```bash
-   git commit -m "Add detailed description of the changes"
-   ```
+### Local Setup Steps
 
-6. **Push Changes**: Push your changes to your fork:
+1. **Fork and Clone**
 
    ```bash
-   git push origin feature-name
+   git clone https://github.com/LaymanMax/steam-developer-graph.git
+   cd steam-developer-graph
    ```
 
-7. **Submit a Pull Request**: Open a pull request from your branch to the main repository's branch. Include a detailed description of your changes and the problem they solve.
+2. **Install Dependencies**
 
-8. **Review and Feedback**: Participate in the review process. Make any requested changes, and your contribution will be merged!
+   ```bash
+   # Install frontend dependencies
+   cd frontend && pnpm install && cd ..
+   ```
 
-### Guidelines
+3. **Ingest Test Fixtures**
 
-- Ensure your code follows the existing style and conventions.
-- Include tests for any new functionality or bug fixes.
-- Write clear, concise commit messages and pull request descriptions.
+   ```bash
+   # Ingest sample fixture for fast local iteration
+   cargo run --manifest-path backend/Cargo.toml --bin cli -- ingest --file backend/tests/fixtures/sample_games.json
+   ```
 
-### Issues
+4. **Run Development Servers**
 
-Feel free to report bugs or suggest enhancements by creating an issue. Be sure to include detailed information about the problem and, if possible, steps to reproduce it.
+   ```bash
+   # Terminal 1: Backend API server (runs on :3001)
+   npm run dev:backend
+
+   # Terminal 2: Frontend Vite server (runs on :5173)
+   npm run dev:frontend
+   ```
+
+---
+
+## Development Workflow & Coding Standards
+
+### Project Structure
+
+- `backend/`: Rust Axum application, analytical query engine, entity resolution, and SQLite database migrations.
+- `frontend/`: React 19, TypeScript, and Vite single-page application using canvas-based force-directed graph visualization and Recharts.
+- `data/`: Local SQLite database and Parquet storage (ignored by git).
+
+### Testing
+
+Always verify that automated tests pass before submitting a Pull Request:
+
+```bash
+# Run both backend and frontend tests
+npm test
+
+# Or run separately:
+npm run test:backend
+npm run test:frontend
+```
+
+### Type Checking and Building
+
+Ensure that TypeScript compiles cleanly without warnings or errors:
+
+```bash
+npm run build:frontend
+```
+
+---
+
+## Submitting Pull Requests
+
+1. Create a descriptive feature branch from `main`:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+2. Make targeted, focused commits with clear messages explaining the rationale.
+3. Add unit or integration tests for new functionality, bug fixes, or analytical metrics.
+4. Push your branch to your fork:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+5. Open a Pull Request against the `main` branch. Provide a concise summary of the changes, any relevant screenshots for UI updates, and confirmation that tests pass.
+
+---
+
+## Reporting Issues & Security
+
+- **Bugs & Enhancements**: Please file an issue using GitHub Issues with reproducible steps, expected versus actual behavior, and relevant logs.
+- **Security Vulnerabilities**: Please review [.github/SECURITY.md](./.github/SECURITY.md) for instructions on confidential vulnerability disclosures.
