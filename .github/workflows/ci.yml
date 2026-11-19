@@ -6,28 +6,63 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
+  backend:
+    name: Rust Backend (Check, Test & Build)
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "backend -> target"
+
+      - name: Check backend targets
+        run: cargo check --manifest-path backend/Cargo.toml --all-targets
+
+      - name: Run backend unit and integration tests
+        run: cargo test --manifest-path backend/Cargo.toml --lib --bins --tests
+
+      - name: Build backend binaries
+        run: cargo build --manifest-path backend/Cargo.toml --bins
+
+  frontend:
+    name: React Frontend (Typecheck, Test & Build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
 
-      # Uncomment and adjust the steps below to match your project's setup
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
 
-      # - name: Install dependencies
-      #   run: npm ci
+      - name: Run frontend tests
+        working-directory: frontend
+        run: pnpm test
 
-      # - name: Lint
-      #   run: npm run lint
-
-      # - name: Run tests
-      #   run: npm test
-
-      # - name: Build
-      #   run: npm run build
+      - name: Build frontend application
+        working-directory: frontend
+        run: pnpm build
