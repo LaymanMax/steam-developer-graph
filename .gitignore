@@ -72,3 +72,15 @@ yarn-error.log*
 
 # Python
 venv
+
+# Data files
+data/*.parquet
+data/*.db
+data/*.sqlite*
+data/*.db-shm
+data/*.db-wal
+*.parquet
+*.sqlite
+*.db
+
+PLAN.md
