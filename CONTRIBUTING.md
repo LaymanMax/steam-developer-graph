@@ -15,7 +15,7 @@ All contributors and participants are expected to adhere to our [Code of Conduct
 ### Prerequisites
 
 - **Rust**: 1.75+ with Cargo (`rustup update`)
-- **Node.js**: 18+ and `pnpm` (or `npm`)
+- **Node.js**: 22+ and `pnpm` (or `npm`)
 
 ### Local Setup Steps
 

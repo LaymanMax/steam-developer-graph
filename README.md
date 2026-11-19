@@ -104,7 +104,7 @@ The application utilizes the **Steam Games Dataset** compiled by Javier F. (`Fro
 ### Prerequisites
 
 - **Rust**: Version 1.75+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- **Node.js**: Version 18+ and `pnpm` (or `npm`)
+- **Node.js**: Version 22+ and `pnpm` (or `npm`)
 
 ### Installation
 
