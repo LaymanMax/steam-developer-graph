@@ -5,6 +5,7 @@ import {
   formatOwnerMidpoint,
   formatOwnerRange,
   formatPercent,
+  formatPrice,
   formatYearRange,
 } from "../src/utils/formatters";
 
@@ -14,6 +15,13 @@ describe("Formatters", () => {
     expect(formatNumber(1250)).toBe("1,250");
     expect(formatNumber(124146)).toBe("124,146");
     expect(formatNumber(undefined)).toBe("—");
+  });
+
+  it("formats prices in USD dollars accurately", () => {
+    expect(formatPrice(0)).toBe("Free");
+    expect(formatPrice(9.99)).toBe("$9.99");
+    expect(formatPrice(59.99)).toBe("$59.99");
+    expect(formatPrice(undefined)).toBe("Free");
   });
 
   it("formats owner ranges properly", () => {

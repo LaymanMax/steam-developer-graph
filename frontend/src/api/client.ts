@@ -21,7 +21,7 @@ import {
 } from "../types";
 
 const API_BASE =
-  (import.meta as any).env?.VITE_API_URL || "http://localhost:3001";
+  (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:3001";
 
 interface ApiResponse<T> {
   success: boolean;

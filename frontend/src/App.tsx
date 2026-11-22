@@ -74,7 +74,7 @@ export const App: React.FC = () => {
   const datasetHasData = Boolean(datasetStatus && datasetStatus.has_data);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-950 text-slate-100 font-sans">
       {/* Primary Sidebar */}
       <Sidebar
         currentView={currentView}

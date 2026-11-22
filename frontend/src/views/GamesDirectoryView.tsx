@@ -11,7 +11,11 @@ import { Badge } from "../components/common/Badge";
 import { EmptyState } from "../components/common/EmptyState";
 import { Pagination } from "../components/common/Pagination";
 import { GameSummaryItem } from "../types";
-import { formatNumber, formatOwnerRange } from "../utils/formatters";
+import {
+  formatNumber,
+  formatOwnerRange,
+  formatPrice,
+} from "../utils/formatters";
 
 interface GamesDirectoryViewProps {
   onSelectGame: (appId: number) => void;
@@ -178,9 +182,7 @@ export const GamesDirectoryView: React.FC<GamesDirectoryViewProps> = ({
                     </td>
                     <td className="py-3 px-4">
                       <div className="text-slate-300 font-mono">
-                        {g.price
-                          ? `$${(g.price / 100).toFixed(2)}`
-                          : "Free / Unpriced"}
+                        {formatPrice(g.price)}
                       </div>
                     </td>
                     <td className="py-3 px-4">
