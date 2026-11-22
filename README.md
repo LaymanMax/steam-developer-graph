@@ -1,115 +1,125 @@
 # Steam Developer Network Graph
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Rust: 2021](https://img.shields.io/badge/Rust-2021-orange.svg)](https://www.rust-lang.org/)
-[![React: 19](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
-[![TypeScript: 5](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
+**Steam Developer Network Graph** is a network analysis and business intelligence platform that models and explores the structural relationships connecting game developers, publishers, titles, genres, release eras, and ownership brackets across the Steam gaming ecosystem.
 
-**Steam Developer Network Graph** is a high-performance network analysis and business intelligence application that explores the relationships connecting game developers, publishers, individual titles, genres, release eras, and ownership tiers across the Steam gaming ecosystem.
+![Interactive Network Explorer](./docs/screenshots/overview.png)
+_Interactive 2D force-directed network explorer visualizing bipartite and multigraph connections across developers (blue), publishers (emerald), and games (amber), with live node inspection and neighborhood expansion._
 
-Rather than presenting isolated leaderboards or static charts, this platform models the games industry as an observational bipartite and multigraph network. It uncovers collaborative development partnerships, multi-publisher strategies, portfolio diversification patterns, and historical business trajectories with interactive graph exploration, entity resolution, and data quality tracking.
+---
+
+## Overview & Problem Solved
+
+Standard game industry directories present isolated leaderboards or static tables where raw metadata noise obscures real corporate structures. On Steam, a single studio or publisher frequently appears under multiple legal variations (`Valve` vs. `Valve Corporation`, `Bethesda Softworks` vs. `Bethesda Softworks LLC`, `FromSoftware, Inc.` vs. `FromSoftware`), while temporary playtest apps and incomplete store records skew catalog counts.
+
+**Steam Developer Network Graph** solves this by combining:
+
+1. **Observational Bipartite & Multigraph Modeling**: Derives evidence-backed edges between studios and publishing labels directly from shared game credits.
+2. **Multi-Signal Entity Resolution**: Normalizes noisy corporate strings, scores duplicate candidates using Jaro-Winkler, Levenshtein, Sørensen-Dice, and legal-stem matching, and provides a human-in-the-loop review queue with completely reversible merges.
+3. **Portfolio Diversity & Collaboration Analytics**: Quantifies publisher specialization vs. diversification via Shannon entropy ($H$) and uncovers repeat co-development partnerships.
+4. **Transparent Data Quality Auditing**: Automatically flags sparse metadata and suspected playtest records (`is_sparse`, `is_likely_playtest`) so analysts can filter them dynamically without destructive data loss.
 
 ---
 
 ## Key Features
 
-1. **Interactive Network Explorer**
-   - Canvas-based 2D force-directed visualization (`react-force-graph-2d`).
-   - Bounded neighborhood exploration with configurable hops (depth 1–3), node limits, year ranges, and genre filters.
-   - Distinct node types (Developers, Publishers, Games) with color coding, dynamic radius proportional to degree/catalog size, and interactive inspector pane.
-   - Inspection of underlying game credits directly from graph edges.
-
-2. **Entity Resolution System**
-   - Built-in multi-signal matching engine resolving noisy raw metadata (e.g., `BioWare` vs `BioWare™`, `Klei Entertainment` vs `Klei Entertainment Inc.`).
-   - Conservative normalizer using Unicode NFKC decomposition, whitespace cleanup, and legal suffix reduction (`Ltd`, `LLC`, `GmbH`, `Studios`, `Games`, `Entertainment`).
-   - Multi-signal scoring: exact key matching, Levenshtein edit distance, Jaro-Winkler string similarity, and token set overlap.
-   - Human-in-the-loop candidate review: approve merges, reject incorrect matches, mark entities as distinctly separate, and assign explicit aliases.
-   - Reversible merge operations with complete audit history (`entity_merge_events`).
-
-3. **Developer & Publisher Intelligence**
-   - **Developer Directory & Profiles**: Canonical name, alias collection, catalog count, associated publishers, collaborator network, release timeline, and ownership range.
-   - **Publisher Directory & Profiles**: Portfolio distribution, distinct developer count, genre diversity measured via Shannon entropy, and multi-year relationships.
-   - **Collaboration Lab**: Deep-dive into co-development credit overlap and multi-developer credits.
-   - **Historical Analysis**: Chronological release volume, active entity counts, and genre dominance trends over time.
-
-4. **Transparent Data Quality & Ingestion**
-   - Automatic classification of sparse metadata records and suspected playtest entries.
-   - User-controllable toggles to include or exclude sparse rows and playtests.
-   - Ingestion tracker recording source URLs, timestamps, row counts, and checksums.
-   - Re-run idempotency: imports can be safely executed repeatedly without creating duplicate entities or corrupting merge histories.
-
-5. **Data Export**
-   - One-click CSV export for filtered developer directories, publisher directories, and collaboration pairs.
-   - JSON export for queried network subgraphs.
+- **Interactive Network Explorer**: Canvas-based 2D force-directed graph (`react-force-graph-2d`) supporting bounded neighborhood traversal, dynamic node sizing by catalog volume or estimated ownership, release-year and genre filters, and one-click neighborhood expansion.
+- **Entity Resolution Center**: Automated candidate discovery pairing conservative Unicode NFKC normalization with legal suffix reduction (`Ltd`, `LLC`, `Inc`, `GmbH`, `Corp`, `Studios`, `Games`, `Entertainment`). Review candidates side-by-side, execute audited merges, mark entities as distinct, or reverse prior merges with full relationship restoration.
+- **Developer & Publisher Intelligence**: Dedicated directories and deep profile pages featuring local relationship subgraphs, annual release timelines, publishing partner breakdowns, Shannon entropy genre concentration charts, and ownership range estimates.
+- **Developer Collaboration Lab**: Ranked co-development studio pairs and publisher-developer partnerships with supporting game credit evidence.
+- **Data Quality & Ingestion Pipeline**: Streaming Apache Arrow / Parquet and JSON/JSONL ingestion engine with SHA-256 file verification, idempotent upserts, and granular quality issue tracking.
+- **CLI & Data Exports**: Full command-line interface and REST endpoints for exporting filtered developer directories, publisher portfolios, collaboration pairs (CSV), and queried subgraphs (JSON).
 
 ---
 
-## Architecture
+## Visual Walkthrough & Screenshot Gallery
 
-```
+### 1. Ecosystem Intelligence Dashboard
+
+![Ecosystem Intelligence Dashboard](./docs/screenshots/dashboard.png)
+_Global ecosystem summary displaying total ingested games, canonical developers, canonical publishers, resolved entity aliases, data quality classification banner, and longitudinal release activity._
+
+### 2. Entity Resolution Center & Reversible Merge Audit
+
+![Entity Resolution Center](./docs/screenshots/entity-resolution.png)
+_Human-in-the-loop duplicate candidate review comparing `FromSoftware, Inc.` and `FromSoftware` (95% match on root stem) with example catalog titles and directional merge controls._
+
+![Merge Audit History](./docs/screenshots/merge-history.png)
+_Every canonical entity merge is recorded in an immutable audit log (`entity_merge_events`) with a snapshot of transferred game relationships, allowing one-click reversal (`Undo Merge`) that restores original catalog counts._
+
+### 3. Developer Collaboration Lab
+
+![Developer Collaboration Lab](./docs/screenshots/collaboration-lab.png)
+_Co-development analysis identifying studios credited together across multiple Steam titles (e.g., `id Software` & `Panic Button`, `Valve` & `Hidden Path Entertainment`, `Bethesda Game Studios` & `Obsidian Entertainment`) alongside supporting release evidence._
+
+### 4. Developer & Publisher Profiles
+
+![Developer Profile](./docs/screenshots/developer-profile.png)
+_Developer Profile view (`Bethesda Game Studios`) showing catalog KPIs, estimated ownership range, and an interactive local relationship network connecting titles, co-developers, and publishing labels._
+
+![Publisher Profile](./docs/screenshots/publisher-profile.png)
+_Publisher Profile view (`Bethesda Softworks`) highlighting portfolio genre diversity via Shannon entropy ($H = 1.67$), partner studio count, and connected developer-game subgraphs._
+
+### 5. Games Catalog, Historical Trends & Data Quality Audit
+
+![Games Catalog](./docs/screenshots/games-catalog.png)
+_Searchable games catalog with SteamSpy ownership brackets, midpoint approximations, store pricing, and real-time toggles for playtests and sparse records._
+
+![Historical Analysis](./docs/screenshots/historical-analysis.png)
+_Historical analysis tracking annual game release volume, active development studios, and first-time business relationship formation._
+
+![Dataset & Data Quality Audit](./docs/screenshots/dataset-quality.png)
+_Dataset provenance tracker and transparent data quality report classifying sparse metadata, suspected playtests, and missing credits._
+
+---
+
+## Architecture & Technology Stack
+
+```text
 steam-developer-graph/
-├── backend/                  # Rust HTTP backend & analytical engine
+├── backend/                  # Rust HTTP backend & analytical engine (Cargo edition 2024)
 │   ├── src/
-│   │   ├── api/              # Axum HTTP routes, handlers & JSON response types
-│   │   ├── db/               # SQLite connection pool (r2d2), migrations & queries
-│   │   ├── entity_resolution/# Normalization, multi-signal matcher & review manager
-│   │   ├── export/           # CSV and Subgraph JSON serialization
-│   │   ├── graph/            # Graph models, neighborhood traversals & metrics
-│   │   ├── ingestion/        # Parquet/JSON streaming reader, quality classification & downloader
+│   │   ├── api/              # Axum HTTP router, handlers & JSON response envelopes
+│   │   ├── db/               # SQLite connection pool (r2d2), schema migrations & analytical queries
+│   │   ├── entity_resolution/# String normalizer, multi-signal matcher & reversible merge manager
+│   │   ├── export/           # CSV directory/collaboration & JSON subgraph serializers
+│   │   ├── graph/            # Bipartite/multigraph models, neighborhood traversal & metrics
+│   │   ├── ingestion/        # Parquet/JSON streaming loader, quality heuristics & HF downloader
 │   │   ├── bin/
-│   │   │   ├── server.rs     # Axum web server entrypoint (:3001)
-│   │   │   └── cli.rs        # Developer CLI for ingestion, status & entity resolution
-│   │   └── lib.rs            # Core shared library
-│   └── tests/                # Unit tests and end-to-end integration tests
+│   │   │   ├── server.rs     # Axum API server entrypoint (http://127.0.0.1:3001)
+│   │   │   └── cli.rs        # CLI for dataset download, ingestion, status, resolution & exports
+│   │   └── lib.rs            # Shared backend library crate (steam_developer_graph)
+│   └── tests/                # Unit tests, API route tests & full-pipeline integration tests
 │
-├── frontend/                 # React 19 + TypeScript + Vite web application
+├── frontend/                 # React 19 + TypeScript 5 + Vite 6 single-page application
 │   ├── src/
-│   │   ├── api/              # Strongly-typed fetch API client
-│   │   ├── components/       # UI building blocks, sidebar, global search, force graph
-│   │   ├── types/            # TypeScript interfaces matching backend models
-│   │   ├── utils/            # Precision formatters for ranges, currency, entropy & numbers
-│   │   └── views/            # Screen views (Overview, Network, Profiles, ER Center, Dataset)
-│   └── tests/                # Vitest & React Testing Library test suites
+│   │   ├── api/              # Typed REST API client
+│   │   ├── components/       # Layout shell, global autocomplete search & 2D force graph canvas
+│   │   ├── types/            # TypeScript interfaces aligned with Rust serde models
+│   │   ├── utils/            # Formatters for ownership brackets, USD prices, playtime & entropy
+│   │   └── views/            # Application views (Overview, Network, Directories, Profiles, ER, Dataset)
+│   └── tests/                # Vitest + React Testing Library suites
 │
+├── docs/
+│   └── screenshots/          # Verified application screenshots
 └── data/                     # Local SQLite database & Parquet dataset storage (git-ignored)
 ```
 
-### Technology Stack
-
-- **Backend**: Rust 2021, Axum, Tokio, SQLite 3 (`rusqlite` + `r2d2`), Arrow & Parquet, Reqwest, Chrono, Serde.
-- **Frontend**: React 19, TypeScript 5, Vite 6, Tailwind CSS tokens, `react-force-graph-2d`, Recharts, Lucide Icons.
-- **Testing**: Rust built-in test framework, Vitest, `@testing-library/react`.
+- **Backend**: Rust, Axum 0.8, Tokio, SQLite (`rusqlite` bundled + `r2d2`), Apache Arrow & Parquet 60.1, Clap 4.6, Strsim, Reqwest, Serde.
+- **Frontend**: React 19, TypeScript 5.7, Vite 6, `react-force-graph-2d`, Recharts, Lucide Icons.
+- **Testing**: Cargo test (unit + integration), Vitest 5, `@testing-library/react`.
 
 ---
 
-## Dataset Attribution & Acquisition
-
-The application utilizes the **Steam Games Dataset** compiled by Javier F. (`FronkonGames`):
-
-- **Source**: [Hugging Face: FronkonGames/steam-games-dataset](https://huggingface.co/datasets/FronkonGames/steam-games-dataset)
-- **License**: MIT
-- **Format**: Parquet (streamed via Apache Arrow) or JSON / JSONL
-- **Data Origin**: Steam Web API and SteamSpy
-
-### Data Caveats & Interpretation
-
-1. **Estimated Owners**: Ownership figures originate from SteamSpy sampling brackets (e.g. `100,000 - 200,000`). The application preserves both lower and upper bounds, calculating an approximate midpoint (`~150,000`) for comparative sorting. These values are observational estimates and should not be treated as audited financial sales.
-2. **Missing Metadata**: Many independent and legacy releases omit publishers, genre tags, or precise release dates. These fields are preserved as nulls rather than guessed.
-3. **Sparse & Playtest Records**: Some records have virtually no metadata or reflect temporary playtests (e.g. `AppID: 2539430 - Black Dragon Mage Playtest`). The ingestion pipeline detects these through heuristics (e.g. missing credits, name patterns, 0-0 owner ranges) and labels them with data quality flags (`is_sparse`, `is_likely_playtest`), giving users full visibility and filtering controls.
-
----
-
-## Getting Started
+## Installation & Quick Start
 
 ### Prerequisites
 
-- **Rust**: Version 1.75+ (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`)
-- **Node.js**: Version 22+ and `pnpm` (or `npm`)
+- **Rust**: 1.85+ with Cargo (`rustup update`)
+- **Node.js**: 22+ with `pnpm` or `npm`
 
-### Installation
+### 1. Clone and Install Dependencies
 
 ```bash
-# Clone the repository
 git clone https://github.com/LaymanMax/steam-developer-graph.git
 cd steam-developer-graph
 
@@ -117,151 +127,216 @@ cd steam-developer-graph
 cd frontend && pnpm install && cd ..
 ```
 
-### Dataset Ingestion
+### 2. Ingest Dataset Records
 
-You can ingest data using the built-in CLI:
+Ingest the included sample fixture to populate the local SQLite database (`./data/steam_games.db`) immediately:
 
 ```bash
-# Ingest the included sample fixture (10 representative games with collaborations and playtests)
 cargo run --manifest-path backend/Cargo.toml --bin cli -- ingest --file backend/tests/fixtures/sample_games.json
-
-# Check current database status
-cargo run --manifest-path backend/Cargo.toml --bin cli -- status
 ```
 
-To download and ingest the full Hugging Face dataset (124,000+ games):
+Or download and ingest the full **FronkonGames Steam Games Dataset** (~124,000+ games) from Hugging Face:
 
 ```bash
-# Download the dataset parquet file directly from Hugging Face
+# Download ./data/steam_games.parquet from Hugging Face
 cargo run --manifest-path backend/Cargo.toml --bin cli -- download
 
-# Ingest the downloaded parquet file
+# Stream-ingest the Parquet file into SQLite
 cargo run --manifest-path backend/Cargo.toml --bin cli -- ingest
 ```
 
----
+### 3. Start the Backend and Frontend Servers
 
-## Running the Application
-
-### 1. Start the Backend API Server
+Start the Rust API server (listens on `http://127.0.0.1:3001`):
 
 ```bash
-cargo run --manifest-path backend/Cargo.toml --bin server
-# Server listens on http://127.0.0.1:3001
+npm run dev:backend
 ```
 
-### 2. Start the Frontend Development Server
-
-In a new terminal window:
+In a second terminal, start the Vite development server (listens on `http://localhost:5173`):
 
 ```bash
 npm run dev:frontend
-# Vite dev server runs on http://localhost:5173
 ```
 
-Navigate to `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## CLI Reference
+## Configuration
 
-The backend CLI provides data engineering and administrative commands:
+The application runs out of the box with sensible local defaults. You can customize settings via environment variables (see [`.env.example`](./.env.example)):
+
+```ini
+# Backend configuration
+PORT=3001
+HOST=127.0.0.1
+DATABASE_PATH=./data/steam_games.db
+DATASET_PATH=./data/steam_games.parquet
+RUST_LOG=info
+
+# Frontend configuration
+VITE_API_URL=http://127.0.0.1:3001
+```
+
+---
+
+## CLI Usage & Practical Examples
+
+The backend includes a full-featured CLI binary (`backend/src/bin/cli.rs`) for data engineering, status auditing, entity resolution, and batch exports.
 
 ```bash
-# Print database statistics and data quality metrics
+# View CLI help and subcommands
+cargo run --manifest-path backend/Cargo.toml --bin cli -- --help
+```
+
+### Check Database & Data Quality Status
+
+```bash
 cargo run --manifest-path backend/Cargo.toml --bin cli -- status
-
-# Ingest a specific Parquet or JSON file
-cargo run --manifest-path backend/Cargo.toml --bin cli -- ingest --file /path/to/dataset.parquet
-
-# Generate entity resolution candidate pairs
-cargo run --manifest-path backend/Cargo.toml --bin cli -- candidates
-
-# Merge an entity into a canonical target
-cargo run --manifest-path backend/Cargo.toml --bin cli -- merge --entity-type developer --source-id 12 --target-id 3 --reason "Corporate legal name variant"
 ```
 
----
+Example output:
 
-## Running Automated Tests
+```text
+Steam Developer Network Graph Status:
+=====================================
+Database:   "./data/steam_games.db"
+Games:      34
+Developers: 16
+Publishers: 13
+Genres:     11
 
-Run the full end-to-end test suite across backend and frontend:
-
-```bash
-npm test
+Data Quality Summary:
+Sparse records:           1
+Likely playtests:         2
+Complete credits games:   32
+Missing release dates:    1
 ```
 
-Or run individual suites:
+### Scan for Entity Resolution Candidates
 
 ```bash
-# Run Rust unit tests and integration tests
-npm run test:backend
+# Discover duplicate candidate pairs for developers or publishers
+cargo run --manifest-path backend/Cargo.toml --bin cli -- resolve --entity-type developer --limit 100
+cargo run --manifest-path backend/Cargo.toml --bin cli -- resolve --entity-type publisher --limit 100
+```
 
-# Run Frontend Vitest tests
-npm run test:frontend
+### Export Directories, Collaborations & Graph Subgraphs
+
+```bash
+# Export canonical developers directory to CSV
+cargo run --manifest-path backend/Cargo.toml --bin cli -- export --target developers --output ./developers.csv
+
+# Export canonical publishers directory (with Shannon entropy scores) to CSV
+cargo run --manifest-path backend/Cargo.toml --bin cli -- export --target publishers --output ./publishers.csv
+
+# Export co-development collaboration pairs to CSV
+cargo run --manifest-path backend/Cargo.toml --bin cli -- export --target collaborations --output ./collaborations.csv
+
+# Export the macro ecosystem network subgraph to JSON
+cargo run --manifest-path backend/Cargo.toml --bin cli -- export --target graph --output ./subgraph.json
 ```
 
 ---
 
 ## REST API Reference
 
-| Method | Endpoint                                 | Description                                                               |
-| ------ | ---------------------------------------- | ------------------------------------------------------------------------- |
-| `GET`  | `/api/overview/summary`                  | Global network summary, top rankings, and health metrics                  |
-| `GET`  | `/api/search?q={term}`                   | Multi-entity autocomplete search across developers, publishers, and games |
-| `GET`  | `/api/graph/overview`                    | Macro-level bipartite graph of leading developers and publishers          |
-| `GET`  | `/api/graph/neighborhood`                | Subgraph neighborhood centered on a node (`node_type`, `id`, `depth`)     |
-| `GET`  | `/api/developers`                        | Paginated directory of developers with filtering and sorting              |
-| `GET`  | `/api/developers/{id}`                   | Complete developer profile, catalog, collaborators, and timeline          |
-| `GET`  | `/api/developers/{id}/network`           | Immediate 1-to-2-hop network subgraph centered on developer               |
-| `GET`  | `/api/publishers`                        | Paginated directory of publishers with Shannon entropy metrics            |
-| `GET`  | `/api/publishers/{id}`                   | Complete publisher profile, developer partners, and genre portfolio       |
-| `GET`  | `/api/games`                             | Paginated games catalog with playtest/sparse toggles                      |
-| `GET`  | `/api/games/{id}`                        | Detailed game metadata, developer/publisher credits, and related titles   |
-| `GET`  | `/api/collaborations`                    | Top co-development pairs sharing games                                    |
-| `GET`  | `/api/collaborations/{dev1}/{dev2}`      | Shared game credits connecting two developers                             |
-| `GET`  | `/api/relationships/publisher-developer` | Publisher-developer relationship catalog                                  |
-| `GET`  | `/api/historical/timeline`               | Annual game release volume and entity activity                            |
-| `GET`  | `/api/historical/genres`                 | Longitudinal genre distribution trends                                    |
-| `GET`  | `/api/entity-resolution/candidates`      | Suggested merge candidate pairs for human review                          |
-| `POST` | `/api/entity-resolution/merge`           | Execute a canonical entity merge with audit log                           |
-| `POST` | `/api/entity-resolution/reject`          | Dismiss a candidate pair                                                  |
-| `POST` | `/api/entity-resolution/mark-distinct`   | Permanently mark two entities as separate                                 |
-| `POST` | `/api/entity-resolution/undo`            | Reverse a previous merge operation                                        |
-| `GET`  | `/api/dataset/status`                    | Ingestion status, local parquet file state, and row counts                |
-| `GET`  | `/api/dataset/quality`                   | Data quality report (missing fields, playtests, sparse records)           |
-| `GET`  | `/api/export/developers`                 | CSV export of developers                                                  |
-| `GET`  | `/api/export/publishers`                 | CSV export of publishers                                                  |
-| `GET`  | `/api/export/collaborations`             | CSV export of collaboration pairs                                         |
-| `GET`  | `/api/export/graph`                      | JSON export of queried subgraph                                           |
+All API endpoints are served from `http://127.0.0.1:3001` and return a standardized JSON envelope (`{ "success": true, "data": ... }`), except file export routes which return `text/csv` or `application/json` attachments.
+
+| Method | Endpoint                                  | Description                                                               |
+| ------ | ----------------------------------------- | ------------------------------------------------------------------------- |
+| `GET`  | `/api/overview/summary`                   | Global network summary, top rankings, and data quality counts             |
+| `GET`  | `/api/search?q={term}`                    | Multi-entity autocomplete search across developers, publishers, and games |
+| `GET`  | `/api/graph/overview`                     | Macro-level bipartite subgraph of leading developers, publishers, & games |
+| `GET`  | `/api/graph/neighborhood`                 | Subgraph neighborhood centered on a node (`node_type`, `id`, `depth`)     |
+| `GET`  | `/api/developers`                         | Paginated directory of canonical developers with filtering and sorting    |
+| `GET`  | `/api/developers/{id}`                    | Complete developer profile, aliases, catalog, collaborators, and timeline |
+| `GET`  | `/api/developers/{id}/network`            | Local network subgraph centered on a developer                            |
+| `GET`  | `/api/publishers`                         | Paginated directory of canonical publishers with Shannon entropy metrics  |
+| `GET`  | `/api/publishers/{id}`                    | Complete publisher profile, studio partners, and genre distribution       |
+| `GET`  | `/api/publishers/{id}/network`            | Local network subgraph centered on a publisher                            |
+| `GET`  | `/api/games`                              | Paginated games catalog with playtest, sparse, year, and owner filters    |
+| `GET`  | `/api/games/{id}`                         | Detailed game metadata, credits, reviews, playtime, and related titles    |
+| `GET`  | `/api/games/{id}/network`                 | Local connection hub subgraph centered on a game                          |
+| `GET`  | `/api/collaborations`                     | Ranked co-development studio pairs sharing game credits                   |
+| `GET`  | `/api/collaborations/{dev1_id}/{dev2_id}` | Shared game credits connecting two specific developers                    |
+| `GET`  | `/api/relationships/publisher-developer`  | Ranked publisher-developer working relationships                          |
+| `GET`  | `/api/historical/timeline`                | Annual game release volume, active studios, and new relationship counts   |
+| `GET`  | `/api/historical/genres`                  | Longitudinal genre distribution trends                                    |
+| `GET`  | `/api/entity-resolution/candidates`       | Paginated duplicate candidate pairs for review                            |
+| `GET`  | `/api/entity-resolution/report`           | Entity resolution coverage metrics and alias counts                       |
+| `GET`  | `/api/entity-resolution/history`          | Audit trail of executed and undone merge events                           |
+| `POST` | `/api/entity-resolution/merge`            | Execute an audited canonical entity merge                                 |
+| `POST` | `/api/entity-resolution/reject`           | Reject a suggested candidate pair                                         |
+| `POST` | `/api/entity-resolution/mark-distinct`    | Permanently mark two entities as distinct                                 |
+| `POST` | `/api/entity-resolution/assign-alias`     | Manually map a raw name string to a canonical entity ID                   |
+| `POST` | `/api/entity-resolution/undo`             | Reverse a previous merge event and restore original relationships         |
+| `POST` | `/api/entity-resolution/generate`         | Trigger candidate generation across active developers and publishers      |
+| `GET`  | `/api/dataset/status`                     | Ingestion status, local Parquet checksum/size, and database entity counts |
+| `GET`  | `/api/dataset/quality`                    | Data quality audit report and issue breakdown                             |
+| `POST` | `/api/dataset/import`                     | Trigger local Parquet or JSON file ingestion                              |
+| `POST` | `/api/dataset/download`                   | Trigger background dataset download from Hugging Face                     |
+| `GET`  | `/api/export/developers`                  | CSV export of filtered developers directory                               |
+| `GET`  | `/api/export/publishers`                  | CSV export of filtered publishers directory                               |
+| `GET`  | `/api/export/collaborations`              | CSV export of developer collaboration pairs                               |
+| `GET`  | `/api/export/graph`                       | JSON export of queried network subgraph                                   |
 
 ---
 
-## Analytical Methodology
+## Analytical Methodology & Data Caveats
 
 ### Shannon Entropy Portfolio Diversity
 
-To measure whether a publisher focuses on a single niche or maintains a diversified catalog across multiple genres, we compute the Shannon entropy ($H$) of their genre distribution:
+To evaluate whether a publisher specializes in a single genre niche or maintains a diversified catalog across multiple genres, the engine computes the Shannon entropy ($H$) of each publisher's genre distribution:
 
 $$H = -\sum_{i=1}^{k} p_i \ln(p_i)$$
 
-Where $p_i$ is the proportion of the publisher's games belonging to genre $i$.
+Where $p_i$ is the proportion of genre assignments in the publisher's catalog belonging to genre $i$.
 
-- **Low entropy ($\sim 0$)**: Highly specialized (e.g. only Strategy or only Simulation).
-- **High entropy ($> 2.0$)**: Broadly diversified across Action, Adventure, RPG, Strategy, and Indie genres.
+- **Low entropy ($H \approx 0.00$)**: Highly specialized in a single genre.
+- **High entropy ($H > 1.50$)**: Broadly diversified across Action, RPG, Adventure, Strategy, Simulation, and Indie titles.
 
-### Derived Collaboration Edges
+### Observational Relationship Edges
 
-Steam does not publish explicit contract records between business entities. Therefore, relationships are strictly observational:
+Steam store metadata does not expose private corporate ownership contracts. All network relationships in this platform are strictly observational and backed by explicit game credits:
 
-- An edge exists between Developer $A$ and Publisher $B$ if and only if there exists a Game $G$ where $A \in \text{Developers}(G)$ and $B \in \text{Publishers}(G)$.
-- A collaboration edge exists between Developer $A$ and Developer $B$ ($A \neq B$) if and only if there exists a Game $G$ where $\{A, B\} \subseteq \text{Developers}(G)$.
-  Every edge in the application retains references to the underlying titles acting as evidential provenance.
+- **Developer–Publisher Edge**: Exists between Developer $A$ and Publisher $B$ if and only if there is at least one Game $G$ where $A \in \text{Developers}(G)$ and $B \in \text{Publishers}(G)$.
+- **Co-Development Edge**: Exists between Developer $A$ and Developer $B$ ($A \neq B$) if and only if there is at least one Game $G$ where $\{A, B\} \subseteq \text{Developers}(G)$.
+
+### Dataset Attribution & Caveats
+
+- **Dataset Source**: [Hugging Face: FronkonGames/steam-games-dataset](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) (MIT License), compiled from the Steam Web API and SteamSpy.
+- **Estimated Ownership Brackets**: Ownership figures reflect SteamSpy sampling brackets (e.g., `10,000,000 - 20,000,000`). Both lower and upper bounds are preserved alongside a midpoint approximation (`~15,000,000`) for ranking and visual scaling; these are observational estimates rather than audited unit sales.
+- **Sparse & Playtest Records**: Store entries lacking credits/dates or matching playtest heuristics (e.g., `AppID: 2539430 - Black Dragon Mage Playtest`) are automatically flagged during ingestion and can be toggled in or out of queries.
 
 ---
 
-## License
+## Testing & Verification
+
+Run the complete automated test suite across both the Rust backend and React frontend:
+
+```bash
+npm test
+```
+
+Or run individual test and build suites:
+
+```bash
+# Run Rust unit tests, API route tests, and full-pipeline integration tests
+npm run test:backend
+
+# Run Frontend Vitest unit and component tests
+npm run test:frontend
+
+# Type-check and build the production frontend bundle
+npm run build:frontend
+```
+
+---
+
+## Contributing & License
+
+Contributions are welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) and our [Code of Conduct](./CODE_OF_CONDUCT.md) before submitting a pull request.
 
 This project is licensed under the [MIT License](./LICENSE).
-
-Dataset distributed under the [MIT License](https://huggingface.co/datasets/FronkonGames/steam-games-dataset) courtesy of Javier F. (`FronkonGames`).
