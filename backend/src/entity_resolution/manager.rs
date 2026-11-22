@@ -50,6 +50,36 @@ impl EntityResolutionManager {
             |r| r.get(0),
         )?;
 
+        // Capture exact games belonging to source and which ones belong exclusively to source (not already on target)
+        let source_game_ids: Vec<i64> = {
+            let mut stmt = tx.prepare(&format!(
+                "SELECT game_id FROM {} WHERE {} = ?1",
+                rel_table, fk_col
+            ))?;
+            let rows = stmt
+                .query_map(params![source_id], |r| r.get(0))?
+                .filter_map(|r| r.ok())
+                .collect();
+            rows
+        };
+        let exclusive_source_game_ids: Vec<i64> = {
+            let mut stmt = tx.prepare(&format!(
+                "SELECT game_id FROM {} WHERE {} = ?1 AND game_id NOT IN (SELECT game_id FROM {} WHERE {} = ?2)",
+                rel_table, fk_col, rel_table, fk_col
+            ))?;
+            let rows = stmt
+                .query_map(params![source_id, target_id], |r| r.get(0))?
+                .filter_map(|r| r.ok())
+                .collect();
+            rows
+        };
+
+        let snapshot_json = serde_json::json!({
+            "source_games": source_game_ids,
+            "exclusive_games": exclusive_source_game_ids,
+        })
+        .to_string();
+
         // Re-link relationships: insert target if not already present
         tx.execute(
             &format!(
@@ -86,15 +116,16 @@ impl EntityResolutionManager {
         // Record merge event
         tx.execute(
             "INSERT INTO entity_merge_events 
-             (entity_type, source_entity_id, target_entity_id, source_canonical_name, target_canonical_name, reason, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))",
+             (entity_type, source_entity_id, target_entity_id, source_canonical_name, target_canonical_name, reason, transferred_game_ids, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, datetime('now'))",
             params![
                 entity_type,
                 source_id,
                 target_id,
                 source_name,
                 target_name,
-                reason.unwrap_or("Manual review merge")
+                reason.unwrap_or("Manual review merge"),
+                snapshot_json
             ],
         )?;
 
@@ -124,13 +155,18 @@ impl EntityResolutionManager {
     pub fn undo_merge(conn: &mut Connection, merge_event_id: i64) -> Result<()> {
         let tx = conn.transaction()?;
 
-        let (entity_type, source_id, target_id, is_undone): (String, i64, i64, i64) = tx
-            .query_row(
-                "SELECT entity_type, source_entity_id, target_entity_id, is_undone 
-                 FROM entity_merge_events WHERE id = ?1",
-                params![merge_event_id],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
-            )?;
+        let (entity_type, source_id, target_id, is_undone, transferred_json): (
+            String,
+            i64,
+            i64,
+            i64,
+            Option<String>,
+        ) = tx.query_row(
+            "SELECT entity_type, source_entity_id, target_entity_id, is_undone, transferred_game_ids 
+             FROM entity_merge_events WHERE id = ?1",
+            params![merge_event_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+        )?;
 
         if is_undone == 1 {
             return Ok(());
@@ -176,21 +212,37 @@ impl EntityResolutionManager {
             params![source_id, entity_type, source_norm],
         )?;
 
-        // Re-link games corresponding to restored aliases
-        tx.execute(
-            &format!(
-                "INSERT OR IGNORE INTO {} (game_id, {})
-                 SELECT DISTINCT g.id, ?1
-                 FROM games g
-                 WHERE EXISTS (
-                     SELECT 1 FROM entity_aliases a 
-                     WHERE a.canonical_entity_id = ?1 
-                       AND a.entity_type = ?2
-                 )",
-                rel_table, fk_col
-            ),
-            params![source_id, entity_type],
-        )?;
+        // Restore exact game relationships from snapshot if available
+        if let Some(json_str) = transferred_json {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                if let Some(src_games) = parsed.get("source_games").and_then(|v| v.as_array()) {
+                    for g in src_games {
+                        if let Some(gid) = g.as_i64() {
+                            tx.execute(
+                                &format!(
+                                    "INSERT OR IGNORE INTO {} (game_id, {}) VALUES (?1, ?2)",
+                                    rel_table, fk_col
+                                ),
+                                params![gid, source_id],
+                            )?;
+                        }
+                    }
+                }
+                if let Some(excl_games) = parsed.get("exclusive_games").and_then(|v| v.as_array()) {
+                    for g in excl_games {
+                        if let Some(gid) = g.as_i64() {
+                            tx.execute(
+                                &format!(
+                                    "DELETE FROM {} WHERE game_id = ?1 AND {} = ?2",
+                                    rel_table, fk_col
+                                ),
+                                params![gid, target_id],
+                            )?;
+                        }
+                    }
+                }
+            }
+        }
 
         // Mark merge event as undone
         tx.execute(
@@ -198,6 +250,15 @@ impl EntityResolutionManager {
              SET is_undone = 1, undone_at = datetime('now') 
              WHERE id = ?1",
             params![merge_event_id],
+        )?;
+
+        // Restore candidate status back to pending so it can be re-evaluated
+        tx.execute(
+            "UPDATE entity_resolution_candidates 
+             SET status = 'pending', reviewed_at = NULL
+             WHERE entity_type = ?1 
+               AND ((entity_a_id = ?2 AND entity_b_id = ?3) OR (entity_a_id = ?3 AND entity_b_id = ?2))",
+            params![entity_type, source_id, target_id],
         )?;
 
         tx.commit()?;

@@ -108,6 +108,9 @@ fn test_full_pipeline_with_sample_fixture() {
     // 7. Verify Entity Merge & Undo:
     let source_id = cand.entity_a_id;
     let target_id = cand.entity_b_id;
+    let orig_source_games = cand.entity_a_games;
+    let orig_target_games = cand.entity_b_games;
+
     EntityResolutionManager::merge_entities(
         &mut conn,
         "publisher",
@@ -135,15 +138,31 @@ fn test_full_pipeline_with_sample_fixture() {
     EntityResolutionManager::undo_merge(&mut conn, merge_event_id)
         .expect("Undo merge must succeed");
 
-    // Source must be unmerged
-    let is_unmerged: i64 = conn
+    // Source must be unmerged and exact game counts must be restored
+    let (is_unmerged, restored_source_games): (i64, i64) = conn
         .query_row(
-            "SELECT is_merged FROM publishers WHERE id = ?1",
+            "SELECT is_merged, game_count FROM publishers WHERE id = ?1",
             rusqlite::params![source_id],
-            |r| r.get(0),
+            |r| Ok((r.get(0)?, r.get(1)?)),
         )
         .expect("Query source unmerged status");
     assert_eq!(is_unmerged, 0);
+    assert_eq!(
+        restored_source_games, orig_source_games,
+        "Undo merge must restore exact original game count to source entity"
+    );
+
+    let restored_target_games: i64 = conn
+        .query_row(
+            "SELECT game_count FROM publishers WHERE id = ?1",
+            rusqlite::params![target_id],
+            |r| r.get(0),
+        )
+        .expect("Query target game count");
+    assert_eq!(
+        restored_target_games, orig_target_games,
+        "Undo merge must restore exact original game count to target entity"
+    );
 
     // 8. Verify Graph Subgraph Query
     let graph = GraphQueryService::get_neighborhood(

@@ -228,5 +228,26 @@ pub fn run_migrations(conn: &mut Connection) -> Result<()> {
         info!("Applied migration v1 successfully.");
     }
 
+    if current_version < 2 {
+        let tx = conn.transaction()?;
+        // Add transferred_game_ids to entity_merge_events so undo_merge can restore exact relationships
+        let has_col: bool = tx
+            .prepare("PRAGMA table_info(entity_merge_events)")?
+            .query_map([], |r| r.get::<_, String>(1))?
+            .filter_map(|r| r.ok())
+            .any(|name| name == "transferred_game_ids");
+
+        if !has_col {
+            tx.execute_batch(
+                "ALTER TABLE entity_merge_events ADD COLUMN transferred_game_ids TEXT;",
+            )?;
+        }
+        tx.execute_batch(
+            "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (2, datetime('now'));",
+        )?;
+        tx.commit()?;
+        info!("Applied migration v2 successfully.");
+    }
+
     Ok(())
 }
