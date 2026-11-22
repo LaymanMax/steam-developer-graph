@@ -4,6 +4,7 @@ use steam_developer_graph::config::Config;
 use steam_developer_graph::db::init_db;
 use steam_developer_graph::entity_resolution::EntityResolutionManager;
 use steam_developer_graph::export::ExportService;
+use steam_developer_graph::graph::queries::{GraphFilterParams, GraphQueryService};
 use steam_developer_graph::ingestion::{DatasetDownloader, DatasetIngester, QualityTracker};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -173,11 +174,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     ExportService::export_publishers_csv(&conn, None, None, None)?
                 }
                 "collaborations" | "collabs" => {
-                    ExportService::export_collaborations_csv(&conn, 2, None, None, None)?
+                    ExportService::export_collaborations_csv(&conn, 1, None, None, None)?
+                }
+                "graph" => {
+                    let subgraph = GraphQueryService::get_ecosystem_overview(
+                        &conn,
+                        &GraphFilterParams::default(),
+                    )?;
+                    ExportService::export_graph_json(&subgraph)?
                 }
                 other => {
                     eprintln!(
-                        "Unknown export target: {}. Options: developers, publishers, collaborations",
+                        "Unknown export target: {}. Options: developers, publishers, collaborations, graph",
                         other
                     );
                     std::process::exit(1);
